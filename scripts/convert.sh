@@ -51,7 +51,14 @@ for i in {0..5}; do
 		elif [ "${revision_val[$i]}" != "" ]; then
 			revision=" revision=\"${revision_val[$i]}\""
 		fi
-		echo "  <project $target_path$repository$remote_for_repo$revision />" >> $manifest_path
+		
+		# NOVO: Verificar se a path já existe no manifest antes de adicionar
+		path_value="${target_path_val[$i]}"
+		if ! grep -q "path=\"$path_value\"" $manifest_path; then
+			echo "  <project $target_path$repository$remote_for_repo$revision />" >> $manifest_path
+		else
+			echo "  <!-- Skipped duplicate path: $path_value -->" >> $manifest_path
+		fi
 	fi
 done
 
