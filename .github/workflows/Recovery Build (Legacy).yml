@@ -125,6 +125,9 @@ jobs:
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
         export BOARD_AVB_ENABLE=false
+        export BOARD_SYSTEMIMAGE_PARTITION_SIZE=4299161600
+        export BOARD_VENDORIMAGE_PARTITION_SIZE=1073741824
+        export BOARD_SUPER_PARTITION_SIZE=17179869184
         lunch ${{ steps.gdt.outputs.MAKEFILE_NAME }}-eng
         make clean
         make ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
