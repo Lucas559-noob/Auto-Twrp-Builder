@@ -111,6 +111,28 @@ jobs:
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
       id: gdt
 
+    - name: Debug Manifest Before Sync
+      run: |
+        echo "::group::Manifest before dependency sync"
+        echo "=== Checking for manifest.xml ==="
+        if [ -f workspace/.repo/manifest.xml ]; then
+          echo "Found manifest.xml, showing vendor/omni entries:"
+          grep -n "vendor/omni" workspace/.repo/manifest.xml || echo "No vendor/omni found in main manifest"
+        else
+          echo "manifest.xml not found"
+        fi
+        
+        echo ""
+        echo "=== Checking roomservice.xml ==="
+        if [ -f workspace/.repo/manifests/roomservice.xml ]; then
+          echo "Found roomservice.xml:"
+          cat workspace/.repo/manifests/roomservice.xml
+        else
+          echo "roomservice.xml not found (expected before first sync)"
+        fi
+        echo "::endgroup::"
+      continue-on-error: true
+      
     - name: Sync Device Dependencies
       run: |
         bash ${GITHUB_WORKSPACE}/scripts/convert.sh ${{ steps.gdt.outputs.DEVICE_PATH }}/${{ steps.buildtree.outputs.value }}.dependencies
@@ -118,6 +140,30 @@ jobs:
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
       continue-on-error: true
 
+    - name: Debug Manifest After Sync
+      run: |
+        echo "::group::Manifest after dependency sync"
+        echo "=== Checking for duplicate vendor/omni entries ==="
+        if [ -f workspace/.repo/manifest.xml ]; then
+          vendor_omni_count=$(grep -c "vendor/omni" workspace/.repo/manifest.xml || echo 0)
+          echo "Found $vendor_omni_count entries of 'vendor/omni' in manifest.xml"
+          if [ "$vendor_omni_count" -gt 1 ]; then
+            echo "WARNING: Multiple vendor/omni entries detected!"
+            grep -n "vendor/omni" workspace/.repo/manifest.xml
+          fi
+        fi
+        
+        echo ""
+        echo "=== Checking roomservice.xml ==="
+        if [ -f workspace/.repo/manifests/roomservice.xml ]; then
+          echo "roomservice.xml contents:"
+          cat workspace/.repo/manifests/roomservice.xml
+        else
+          echo "roomservice.xml not found"
+        fi
+        echo "::endgroup::"
+      continue-on-error: true
+      
     - name: Set Swap Space
       uses: pierotofy/set-swap-space@master
       with:
