@@ -95,8 +95,9 @@ jobs:
       working-directory: workspace
     - name: Generate Device Tree
       run: |
-        wget ${{ github.event.inputs.IMG_URL }}
-        python3 ${GITHUB_WORKSPACE}/scripts/build.py -i *.img -o device
+        wget -q ${{ github.event.inputs.IMG_URL }} -O boot.img || { echo "Download failed"; exit 1; }
+        [ -f boot.img ] || { echo "boot.img not found"; exit 1; }
+        python3 ${GITHUB_WORKSPACE}/scripts/build.py -i boot.img -o device
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
       id: gdt
 
