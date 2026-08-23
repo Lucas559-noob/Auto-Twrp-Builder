@@ -93,6 +93,16 @@ jobs:
       run: |
         repo sync -j$(nproc --all) --force-sync
       working-directory: workspace
+
+    - name: Sync HAL Dependencies
+      run: |
+        echo "::group::Syncing HAL and hardware dependencies"
+        # Explicitly sync common device HALs for MediaTek and other platforms
+        repo sync -j$(nproc --all) hardware/interfaces hardware/qcom hardware/libhardware vendor/qcom device/generic 2>&1 || true
+        echo "::endgroup::"
+      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
+      continue-on-error: true
+      
     - name: Generate Device Tree
       run: |
         wget -q ${{ github.event.inputs.IMG_URL }} -O boot.img || { echo "Download failed"; exit 1; }
@@ -125,13 +135,22 @@ jobs:
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
         export BOARD_AVB_ENABLE=false
+        export SKIP_POSTINSTALL_CONFIG=true
         export BOARD_SYSTEMIMAGE_PARTITION_SIZE=3189227520
         export BOARD_VENDORIMAGE_PARTITION_SIZE=838860800
         export BOARD_PRODUCTIMAGE_PARTITION_SIZE=1291845632
         lunch ${{ steps.gdt.outputs.MAKEFILE_NAME }}-eng
         make clean
-        make ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
+        make ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all) 2>&1 | tee build.log
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
+
+    - name: Upload Build Log
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-log
+        path: ${{ steps.pwd.outputs.workspace-folder }}/build.log
+      continue-on-error: true
 
     - name: Upload to Release
       uses: softprops/action-gh-release@v1
